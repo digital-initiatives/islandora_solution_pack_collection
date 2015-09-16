@@ -493,11 +493,12 @@ function islandora_basic_collection_get_query_info(array $params, $type = 'view'
   }
 
   // Add in defaults.
+  // 2015-09-15  set default order to object
   $params += array(
     'page_number' => 0,
     'page_size' => 10,
     'vars' => '?object ?title ?owner ?date_modified',
-    'order_by' => '?title',
+    'order_by' => '?object',
     'model' => '?model',
     'context' => $type,
   );
