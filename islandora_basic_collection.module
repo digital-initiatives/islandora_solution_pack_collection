@@ -669,12 +669,17 @@ function islandora_basic_collection_get_member_objects(AbstractObject $object, $
 function islandora_basic_collection_get_collections() {
   module_load_include('inc', 'islandora', 'includes/utilities');
   $tuque = islandora_get_tuque_connection();
-  $query = 'select $object $label from <#ri> where (
-            $object <info:fedora/fedora-system:def/model#hasModel> <info:fedora/islandora:collectionCModel> and
-            $object <fedora-model:label> $label and
-            $object <fedora-model:state> <info:fedora/fedora-system:def/model#Active>)
-            order by $label';
-  $results = $tuque->repository->ri->itqlQuery($query, 'unlimited');
+  $query = <<<EOQ
+SELECT ?object ?label
+FROM <#ri>
+WHERE {
+  ?object <fedora-model:hasModel> <info:fedora/islandora:collectionCModel> ;
+          <fedora-model:label> ?label ;
+          <fedora-model:state> <fedora-model:Active> .
+}
+ORDER BY ?label
+EOQ;
+  $results = $tuque->repository->ri->sparqlQuery($query, 'unlimited');
   $collections = array();
   foreach ($results as $result) {
     $pid = $result['object']['value'];
@@ -735,7 +740,7 @@ function islandora_basic_collection_form_islandora_object_properties_form_alter(
 function islandora_basic_collection_form_islandora_delete_object_form_alter(array &$form, array &$form_state) {
   $object = $form_state['object'];
   if (in_array('islandora:collectionCModel', $object->models)) {
-    $form['description']['#markup'] = t('This will remove the collection object and all its child objects. Child objects currently shared with other collections will not be deleted. This action cannot be undone.');
+    $form['description']['#markup'] = t('This will remove the collection object and all its child objects. If child objects are collection objects, their children will not be deleted, and will become orphaned. Child objects currently shared with other collections will not be deleted. This action cannot be undone.');
     $form['#submit'] = array('islandora_basic_collection_islandora_delete_object_form_delete_children_submit');
   }
 }
@@ -770,7 +775,7 @@ function islandora_basic_collection_form_islandora_repository_admin_alter(&$form
     '#type' => 'checkbox',
     '#title' => t('UUID PID Generation'),
     '#default_value' => variable_get('islandora_basic_collection_generate_uuid', FALSE),
-    '#description' => t('Generate Fedora object PIDs with v4 UUIDs. Only applies during standard ingest process.'),
+    '#description' => t('Generate Fedora object PIDs with v4 UUIDs.'),
   );
 }
 
